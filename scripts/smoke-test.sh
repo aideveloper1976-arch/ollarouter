@@ -38,9 +38,13 @@ echo "Building..."
 python3 "$ROOT/scripts/mock_provider.py" 18998 & MOCK_PID=$!
 "$WORK/ollarouter" -config "$ROOT/scripts/smoke-providers.yaml" >"$WORK/server.log" 2>&1 & SRV_PID=$!
 
-for _ in $(seq 1 50); do
-  curl -fs -o /dev/null "$BASE/api/version" && break
-  sleep 0.2
+# Wait for both the mock provider and OllaRouter before sending requests.
+for url in "http://127.0.0.1:18998/v1/models" "$BASE/api/version"; do
+  for _ in $(seq 1 50); do
+    curl -fs -o /dev/null "$url" && break
+    sleep 0.2
+  done
+  curl -fs -o /dev/null "$url" || { echo "Timed out waiting for $url"; exit 1; }
 done
 
 echo "Running checks..."
