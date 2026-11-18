@@ -1,0 +1,24 @@
+# Environment secrets
+.env
+
+# Node
+node_modules/
+webui/dist/
+
+# Go binaries
+*.exe
+*.out
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+
+# Docker volumes
+data/
+
+# Logs
+*.log
+*.bak

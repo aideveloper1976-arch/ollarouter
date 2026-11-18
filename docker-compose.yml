@@ -1,0 +1,88 @@
+services:
+  # ============================================================
+  # OllaRouter — Multi-Provider LLM Gateway
+  # ============================================================
+  ollarouter:
+    build:
+      context: .
+      dockerfile: ollarouter/Dockerfile
+      no_cache: true
+      args:
+        - OLLAROUTER_VERSION=0.22.0
+    image: ollarouter:latest
+    container_name: ollarouter
+    ports:
+      - "11434:11434"
+    environment:
+      # Listen on 11434 (the port Ollama clients expect). Overrides settings.port.
+      - OLLAROUTER_PORT=11434
+      - OLLAROUTER_CONFIG_PATH=/app/config/providers.yaml
+      # Other settings (log level, usage persistence, ...) live in providers.yaml.
+      # Set usage_persistence: file and usage_file_path: /data/usage.json there
+      # to keep usage stats in the ollarouter_data volume.
+
+      # Provider API keys (from .env file or host environment)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - CHATGPT_SESSION_COOKIE=${CHATGPT_SESSION_COOKIE:-}
+
+      # Client API keys (for authentication)
+      - OLLAROUTER_API_KEY=${OLLAROUTER_API_KEY:-}
+    volumes:
+      # Config file (persisted across rebuilds)
+      - ./ollarouter/providers.yaml:/app/config/providers.yaml
+      # Optional: usage data persistence
+      - ollarouter_data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/app/ollarouter", "-healthcheck"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # ============================================================
+  # Open WebUI — Ollama-Compatible Web Chat Interface
+  # ============================================================
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    volumes:
+      - open_webui_data:/app/backend/data
+    environment:
+      # Point to OllaRouter instead of direct Ollama
+      - OLLAMA_BASE_URL=http://ollarouter:11434
+      # REQUIRED: Set WEBUI_SECRET_KEY in .env to a long random string for JWT signing.
+      # Example: openssl rand -hex 32
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      # Remove login
+      - WEBUI_AUTH=False
+      # Forces the UI to use the YAML variables
+      - RESET_CONFIG_ON_START=True
+      # Increase timeout for slow model handshakes
+      - AIOHTTP_CLIENT_TIMEOUT=60
+      - AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST=30
+      # Features
+      - ENABLE_RAG_WEB_SEARCH=True
+      - RAG_WEB_SEARCH_ENGINE=duckduckgo
+    depends_on:
+      - ollarouter
+
+volumes:
+  ollarouter_data:
+    external: false
+  open_webui_data:
+    external: false

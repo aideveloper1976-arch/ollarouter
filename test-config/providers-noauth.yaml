@@ -1,0 +1,14 @@
+# Test configuration for OllaRouter - NO AUTH for browser testing
+settings:
+  port: 11435
+  log_level: debug
+  log_format: text
+  prometheus_enabled: true
+  rate_limiting_enabled: false
+  default_max_retries: 3
+  default_timeout_seconds: 30
+  usage_persistence: memory
+
+api_keys: []
+
+providers: []

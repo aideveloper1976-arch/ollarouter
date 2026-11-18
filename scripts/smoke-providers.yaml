@@ -1,0 +1,38 @@
+# Config for scripts/smoke-test.sh. Two providers serve the same model:
+# "dead" points at a closed port, "mock" at scripts/mock_provider.py.
+settings:
+  port: 18435
+  log_level: warn
+  log_format: text
+  prometheus_enabled: true
+  rate_limiting_enabled: true
+  default_max_retries: 0
+  usage_persistence: memory
+
+api_keys:
+  - name: smoke
+    key: smoke-test-key
+    rate_limit: 100
+
+providers:
+  - name: dead
+    type: openai-compatible
+    base_url: http://127.0.0.1:18999/v1
+    api_key: unused
+    models:
+      - name: mock-small
+  - name: mock
+    type: openai-compatible
+    base_url: http://127.0.0.1:18998/v1
+    api_key: unused
+    models:
+      - name: mock-small
+    pricing:
+      input_per_1k: 1.0
+      output_per_1k: 2.0
+
+virtual_models:
+  - name: resilient
+    fallback_chain:
+      - dead/mock-small
+      - mock/mock-small

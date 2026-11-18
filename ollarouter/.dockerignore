@@ -1,0 +1,9 @@
+.env
+providers.yaml
+.git/
+.gitignore
+*.md
+webui/node_modules/
+webui/src/
+build/
+internal/webui/dist/

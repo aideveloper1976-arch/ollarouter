@@ -1,0 +1,19 @@
+# Test configuration for OllaRouter
+settings:
+  port: 11435
+  log_level: debug
+  log_format: text
+  prometheus_enabled: true
+  rate_limiting_enabled: false
+  default_max_retries: 3
+  default_timeout_seconds: 30
+  usage_persistence: memory
+
+# API keys for testing auth - use "test-api-key-ollarouter"
+api_keys:
+  - name: test-admin
+    key: test-api-key-ollarouter
+    rate_limit: 1000
+    monthly_budget_usd: 100.00
+
+providers: []

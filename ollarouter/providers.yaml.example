@@ -1,0 +1,156 @@
+# ============================================================
+# OllaRouter Configuration — providers.yaml
+# ============================================================
+# Place this file at /app/config/providers.yaml or specify
+# via OLLAROUTER_CONFIG_PATH environment variable.
+#
+# API keys use ${ENV_VAR} syntax — they are read from
+# environment variables at runtime.
+
+settings:
+  # Port for the Ollama-compatible API
+  port: 11435
+
+  # Log level: debug, info, warn, error
+  log_level: info
+
+  # Log format: json or text
+  log_format: json
+
+  # Enable Prometheus metrics at GET /metrics
+  prometheus_enabled: true
+
+  # Enable rate limiting per API key
+  rate_limiting_enabled: true
+
+  # Default max retries for provider requests
+  default_max_retries: 3
+
+  # Default timeout in seconds for provider requests
+  default_timeout_seconds: 30
+
+  # Leave /v1/chat/completions open even when api_keys are set.
+  # Only for clients that cannot send a key. Default: false.
+  # openai_endpoint_public: false
+
+  # Circuit breaker per provider: failures before opening, and cooldown.
+  circuit_breaker_threshold: 5
+  circuit_breaker_cooldown_seconds: 30
+
+  # Usage persistence mode: memory or file
+  usage_persistence: memory
+
+  # File path for usage persistence (only when usage_persistence: file)
+  usage_file_path: /data/usage.json
+
+# Client API keys for authenticating requests to OllaRouter.
+# If empty, authentication is disabled.
+#
+# IMPORTANT: Set the OLLAROUTER_API_KEY environment variable to a secure,
+# randomly-generated value. Do not use a default or well-known key.
+# Example: openssl rand -hex 32
+api_keys:
+  - name: admin-key
+    key: "${OLLAROUTER_API_KEY}"
+    rate_limit: 100
+    monthly_budget_usd: 100.00
+
+# Provider configurations
+providers:
+  # OpenAI provider
+  - name: openai-main
+    type: openai
+    base_url: https://api.openai.com/v1
+    api_key: "${OPENAI_API_KEY}"
+    # optional: OpenAI-Organization header
+    # organization_id: "org-xxx"
+    models:
+      - name: gpt-4o
+        max_tokens: 16384
+      - name: gpt-4o-mini
+        max_tokens: 16384
+      - name: gpt-4-turbo
+        max_tokens: 4096
+    pricing:
+      input_per_1k: 0.0025
+      output_per_1k: 0.01
+
+  # Anthropic provider
+  - name: anthropic-main
+    type: anthropic
+    base_url: https://api.anthropic.com/v1
+    api_key: "${ANTHROPIC_API_KEY}"
+    anthropic_version: "2023-06-01"
+    models:
+      - name: claude-sonnet-4
+      - name: claude-haiku-3.5
+    pricing:
+      input_per_1k: 0.003
+      output_per_1k: 0.015
+
+  # Google Gemini provider
+  - name: google-gemini
+    type: google
+    api_key: "${GOOGLE_API_KEY}"
+    models:
+      - name: gemini-1.5-pro
+      - name: gemini-1.5-flash
+
+  # Local Ollama instance (container name or host)
+  # Guardrails are enabled by default for ollama and openai-compatible provider types.
+  # To customize guardrails, uncomment the guardrails block below.
+  - name: local-ollama
+    type: ollama
+    base_url: http://ollama:11434
+    auto_discover: true
+    polling_interval_seconds: 60
+    # guardrails:
+    #   enabled: true
+    #   tool_call_validation: true
+    #   rescue_malformed_tool_calls: true
+    #   mixed_output_policy: tool_call_first  # "tool_call_first" or "text_first"
+    #   max_retries: 3
+
+  # DeepSeek (OpenAI-compatible, with balance lookup in the admin console)
+  - name: deepseek
+    type: deepseek
+    base_url: https://api.deepseek.com
+    api_key: "${DEEPSEEK_API_KEY}"
+    models:
+      - name: deepseek-chat
+      - name: deepseek-reasoner
+
+  # OpenAI-compatible provider (e.g., Groq, Together, Azure)
+  - name: groq
+    type: openai-compatible
+    base_url: https://api.groq.com/openai/v1
+    api_key: "${GROQ_API_KEY}"
+    models:
+      - name: llama3-70b-8192
+      - name: llama3-8b-8192
+      - name: mixtral-8x7b-32768
+    pricing:
+      input_per_1k: 0.0001
+      output_per_1k: 0.0001
+
+  # ChatGPT Plus provider (requires session cookie)
+  # - name: chatgpt-plus
+  #   type: chatgpt-plus
+  #   base_url: https://chatgpt.com
+  #   session_cookie: "${CHATGPT_SESSION_COOKIE}"
+  #   # auto_discover: true  # Fetches available models from ChatGPT
+
+# Virtual models with fallback chains
+virtual_models:
+  - name: fast-chat
+    fallback_chain:
+      - openai-main/gpt-4o-mini
+      - groq/llama3-8b-8192
+    timeout: 30
+
+  - name: best-quality
+    fallback_chain:
+      - openai-main/gpt-4o
+      - anthropic-main/claude-sonnet-4
+      - local-ollama/*
+    timeout: 60

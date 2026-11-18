@@ -1,0 +1,11 @@
+providers.yaml
+ollarouter.exe
+nul
+
+# Local runtime data
+data/
+*.log
+*.bak
+
+# Environment secrets
+.env
