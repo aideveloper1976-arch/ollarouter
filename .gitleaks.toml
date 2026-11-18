@@ -2,9 +2,10 @@
 useDefault = true
 
 [allowlist]
-description = "Test fixtures: fake keys used only by unit tests and the smoke test"
+description = "Test fixtures and historical SDLC records whose curl examples use placeholder keys"
 paths = [
   '''_test\.go$''',
   '''scripts/smoke-providers\.yaml''',
   '''test-config/.*\.yaml''',
+  '''docs/product/traceability/.*\.md''',
 ]
